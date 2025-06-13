@@ -1,0 +1,138 @@
+code.gs file
+  var url= "https://docs.google.com/spreadsheets/d/18PM251-vCPumodoHGA3-hoJQ1KekrgPW3E9txo_PaVI/edit?gid=0#gid=0"
+function doGet(){
+   var app = SpreadsheetApp.openByUrl(url);
+   var active_sheet = app.getSheetByName("Options");
+   var list =  active_sheet.getRange(1,1,active_sheet.getRange("A1").getDataRegion().getLastRow(),1).getValues();
+   var HtmlListArray =  list.map(function(r){ return '<option>' + r[0] + '<option>'; }).join('');
+    var tmp  = HtmlService.createTemplateFromFile("index");
+    tmp.list = HtmlListArray;
+    return tmp.evaluate();
+}
+
+function userClicked(userInfo){
+   var app = SpreadsheetApp.openByUrl(url);
+   var active_sheet = app.getSheetByName("Sheet1");
+   
+   
+     if (!userInfo || !userInfo.FirstName) {
+    Logger.log("userInfo is missing or malformed:", userInfo);
+    return;
+      }
+   active_sheet.appendRow([userInfo.FirstName,
+                           userInfo.LastName ,
+                           userInfo.options,
+                          new Date()]);
+}
+function include(filename){
+      return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+
+index.html
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <?!= include("css"); ?>
+  </head>
+  <body>
+
+   <div class="container">
+
+    <div class="row">
+        <div class="input-field col s6">
+          <input id="fname" type="text" class="validate">
+          <label for="fname">First Name</label>
+        </div>
+        <div class="input-field col s6">
+          <input id="lname" type="text" class="validate">
+          <label for="lname">Last Name</label>
+        </div>
+      </div>
+  <div class="row">
+    <div class="input-field col s6 form-row">
+    <select id="app">
+      <option disabled selected>Choose your option</option>
+       <option>Google sheets</option>
+        <option><?!=list?></option>
+    </select>
+     <label>Application :</label>
+   <div class="row">
+        <div class="input-field col s6">
+          <input id="Zip" type="text" class="validate">
+          <label for="Zip">Zip code</label>
+        </div>
+        <div class="input-field col s6">
+          <input disabled id="est" type="text" class="validate">
+          <label for="est">Estimate</label>
+        </div>
+      </div>
+   
+    <div id="btn" class="form-row">
+      <button class="waves-effect waves-light btn"><i class="material-icons left">cloud</i>button</button>
+    </div>
+    </div>  <!--   close container row -->
+
+  </div> <!--   close container div -->
+
+  </div> <!--   close container div -->
+   
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <?!= include("javascript"); ?>
+  </body>
+</html>
+
+
+
+javascript.html
+
+     <script>
+      // DropDown initialization
+        document.addEventListener('DOMContentLoaded', function() {
+        var elems = document.querySelectorAll('select');
+        var instances = M.FormSelect.init(elems);
+       });
+
+      document.addEventListener("DOMContentLoaded", function () {
+
+        document.getElementById("btn").addEventListener("click", doStuff);
+        document.getElementById("zip").addEventListener("input", getEstimate);
+
+        function doStuff() {
+          var userInfo = {
+            FirstName: document.getElementById("fname").value,
+            LastName: document.getElementById("lname").value,
+            options: document.getElementById("app").value
+          };
+          
+          google.script.run.userClicked(userInfo);
+
+          document.getElementById("fname").value = "";
+          document.getElementById("lname").value = "";
+          var myApp =  document.getElementById("app")
+          myApp.selectedIndex = 0;
+          M.FormSelect.init(myApp);
+        }
+
+        function getEstimate(){
+          var zipCode = document.getElementById("zip").value;
+          document.getElementById("est").value = zipCode; 
+        }
+      });
+    </script>
+
+
+css.html
+
+    <style>
+       .form-row{
+        margin-bottom: 20px;
+       }
+
+    </style>
