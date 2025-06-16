@@ -1,0 +1,274 @@
+code.gs
+
+
+var url= "https://docs.google.com/spreadsheets/d/1kBcMVk05SNyNwK6qeYyQZk765aVtN9jh7pM5RzYwSaw/edit?gid=0#gid=0"
+var Route = {};
+Route.path = function(route,callback){
+    Route[route] = callback;
+}
+
+function doGet(e){
+  Route.path("form", loadForm);
+   Route.path("about", loadAbout);
+
+   if(Route[e.parameter.v]){
+    return Route[e.parameter.v]();
+   }else{
+    return render("home");
+   }
+  
+}
+
+
+function loadForm(){
+ var app = SpreadsheetApp.openByUrl(url);
+ var active_sheet = app.getSheetByName("Options");
+ var list =  active_sheet.getRange(1,1,active_sheet.getRange("A1").getDataRegion().getLastRow(),1).getValues();
+ var HtmlListArray =  list.map(function(r){return '<option>' + r[0] + '<option>'; }).join('');
+
+return render("index", {list : HtmlListArray });
+ 
+}
+function loadAbout(){
+  return render("about");
+}
+
+
+index.html
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <?!= include("css"); ?>
+  </head>
+  <body>
+
+   <div class="container">
+
+    <div class="row">
+        <div class="input-field col s6">
+          <input id="fname" type="text" class="validate">
+          <label for="fname">First Name</label>
+        </div>
+        <div class="input-field col s6">
+          <input id="lname" type="text" class="validate">
+          <label for="lname">Last Name</label>
+        </div>
+      </div>
+  <div class="row">
+    <div class="input-field col s6 form-row">
+    <select id="app">
+      <option disabled selected>Choose your option</option>
+       <option>Google sheets</option>
+        <option><?!=list?></option>
+    </select>
+     <label>Application :</label>
+    </div>
+<!--     
+     <div class="input-field col s6 form-row">
+      <input id="prefDate"  type="text" class="datepicker">
+    </div> -->
+    
+    
+
+   <div class="row">
+        <div class="input-field col s6">
+          <input id="zip" type="text" class="validate">
+          <label for="zip">Zip code</label>
+        </div>
+        <div class="input-field col s6">
+          <input disabled id="est" type="text" class="validate">
+          <label for="est" class="active">Estimate</label>
+        </div>
+      </div>
+   
+    <div id="btn" class="form-row">
+      <button class="waves-effect waves-light btn"><i class="material-icons left">cloud</i>button</button>
+    </div>
+    </div>  <!--   close container row -->
+
+  </div> <!--   close container div -->
+
+  </div> <!--   close container div -->
+   
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <?!= include("javascript"); ?>
+  </body>
+</html>
+
+javascript.html
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // DropDown initialization
+    var selectBoxes = document.querySelectorAll('select');
+    M.FormSelect.init(selectBoxes);
+
+    // Datepicker with disabled dates
+    // var datepicker = document.getElementById("prefDate");
+    // var disabledDays = [
+     
+    // ];
+    // M.Datepicker.init(datepicker, {
+    //   disabledDayFn: function (day) {
+    //     return disabledDays.indexOf(day.valueOf()) > -1;
+    //   }
+    // });
+
+    // Button click event
+    document.getElementById("btn").addEventListener("click", doStuff);
+
+    // ZIP input change event
+    document.getElementById("zip").addEventListener("input", getEstimate);
+
+    // Form submit handler
+    function doStuff() {
+      var userInfo = {
+        FirstName: document.getElementById("fname").value,
+        LastName: document.getElementById("lname").value,
+        options: document.getElementById("app").value,
+        zip: document.getElementById("zip").value,
+        est: document.getElementById("est").value
+      };
+
+      google.script.run.userClicked(userInfo);
+
+      // Reset form fields
+      document.getElementById("fname").value = "";
+      document.getElementById("lname").value = "";
+      document.getElementById("zip").value = "";
+      document.getElementById("est").value = "";
+      M.updateTextFields();
+
+      // Reset dropdown
+      var myApp = document.getElementById("app");
+      myApp.selectedIndex = 0;
+      M.FormSelect.init(myApp);
+    }
+
+    // Call Apps Script getCost
+    function getEstimate() {
+      var zipCode = document.getElementById("zip").value;
+      if (zipCode.length === 5) {
+        google.script.run.withSuccessHandler(updateEstimate).getCost(zipCode);
+      }
+    }
+
+    // Update estimate input
+    function updateEstimate(cost) {
+      document.getElementById("est").value = cost;
+      M.updateTextFields();
+    }
+  });
+</script>
+
+
+css.html
+
+ <style>
+       .form-row{
+        margin-bottom: 20px;
+       }
+
+    </style>
+
+funcs.gs
+
+function userClicked(userInfo){
+   var app = SpreadsheetApp.openByUrl(url);
+   var active_sheet = app.getSheetByName("Sheet1");
+   
+   
+     if (!userInfo || !userInfo.FirstName) {
+    Logger.log("userInfo is missing or malformed:", userInfo);
+    return;
+      }
+   active_sheet.appendRow([userInfo.FirstName,
+                           userInfo.LastName ,
+                           userInfo.options,
+                           userInfo.zip,
+                           userInfo.est,
+                          new Date()]);
+}
+function getCost(zipcode){
+  var app = SpreadsheetApp.openByUrl(url);
+  var active_sheet = app.getSheetByName("Estimate");
+  var data = active_sheet.getRange(1,1,active_sheet.getLastRow(),2).getValues();
+
+  var zipCodeList = data.map(function(r){return r[0]});
+  var costList = data.map(function(r){return r[1]});
+
+  var positon = zipCodeList.indexOf(zipcode);
+  if(positon > -1){
+    return "$" +  costList[positon].toFixed(2);
+  }else{
+    return 'Unavailable value';
+  }
+}
+
+utils.gs
+
+
+function include(filename){
+      return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+function render(file, argsObject) {
+  var tmp = HtmlService.createTemplateFromFile(file);
+  if (argsObject) {
+    var keys = Object.keys(argsObject);
+    keys.forEach(function(key) {
+      tmp[key] = argsObject[key]; 
+    });
+  }
+  return tmp.evaluate();
+}
+
+home.html
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <?!= include("css"); ?>
+  </head>
+  <body>
+
+   <div class="container">
+    <div class="row">
+        <div class="input-field col s6">
+           <h1>Welcome</h1>
+         <a href="<?= ScriptApp.getService().getUrl() ?>?v=form" class="waves-effect waves-light btn">
+         <i class="material-icons left">cloud</i>Add Record
+         </a>
+
+
+        </div>
+      </div>
+    </div>  <!--   close container row -->
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  </body>
+</html>
+
+about.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <h1>This is my about page</h1>
+  </body>
+</html>
+
+
+
