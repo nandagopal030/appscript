@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dynamic Cards</title>
+  <style>
+    body {
+      margin: 20px;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+    .header-section {
+      margin-bottom: 30px;
+    }
+    #cards-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .card-container {
+      background-color: #e8f5fb;
+      width: calc(33.33% - 20px);
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    h4 {
+      color: rgb(0, 130, 170);
+      margin: 10px 0 5px;
+    }
+    h3 {
+      color: gray;
+    }
+    h2 {
+      color: #0048C6;
+    }
+    p {
+      margin: 0 0 10px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-section">
+    <h3>Services</h3>
+    <h2>Explore the Services we offer to <br>support your pipeline</h2>
+  </div>
+
+<div id="cards-wrapper">
+  <? for (let i = 0; i < appsList.length; i++) { ?>
+    <div class="card-container">
+      <div class="card">
+        <img src="<?= imageList[i] ?>" alt="Image <?= i+1 ?>" />
+        <h4><?= pipelineList[i] ?> <?= i+1 ?></h4>
+        <p><?= appsList[i] ?></p>
+        <ul>
+          <li>PM: Person <?= i+1 ?></li>
+          <li>PO: Owner <?= i+1 ?></li>
+          <li>DM: Manager <?= i+1 ?></li>
+        </ul>
+      </div>
+    </div>
+  <? } ?>
+</div>
+
+
+
+  
+</body>
+</html>
+
+
+
+
+
+
+function doGet() {
+  const url = "https://docs.google.com/spreadsheets/d/1XdfZj89C6SthiwjE91gtQgwqHiUF7I8cXI5fXiXs2HA/edit";
+  const sheet = SpreadsheetApp.openByUrl(url).getSheetByName("data");
+  const lastRow = sheet.getLastRow();
+
+  const appsNames = sheet.getRange(2, 1, lastRow - 1).getValues(); // Column A
+  const pipelines = sheet.getRange(2, 2, lastRow - 1).getValues(); // Column B
+  const imageLinks = sheet.getRange(2, 3, lastRow - 1).getValues(); // ✅ Column C (images)
+
+  const template = HtmlService.createTemplateFromFile("index");
+  template.appsList = appsNames.flat();
+  template.pipelineList = pipelines.flat();
+  template.imageList = imageLinks.flat(); // ✅ Send image list to HTML
+  return template.evaluate();
+}
